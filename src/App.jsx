@@ -3,17 +3,28 @@ import Masonry from 'react-masonry-css';
 import searchImg from './assets/search-line.svg';
 import { RiCloseLine, RiDownload2Fill } from '@remixicon/react';
 
+// Loader Component
+const Loader = () => {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+      <div className="loader"></div>
+    </div>
+  );
+};
+
 const App = () => {
   const apiKey = 'tdueJadA8ZTPIeCOdG83jKTbdnWANKIhtggrzgAdHW8ZmBnwsdCmpcxp';
   const [perPage, setPerPage] = useState(15);
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState("nature");
+  const [searchTerm, setSearchTerm] = useState("nature"); // Default search term
   const [imagesData, setImagesData] = useState([]);
   const [trackClickedImage, setTrackClickedImage] = useState("");
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [photographerName, setPhotographerName] = useState("");
+  const [loading, setLoading] = useState(false); // Loading state
 
   const getImages = async (isLoadMore = false) => {
+    setLoading(true); // Start loader
     try {
       const response = await fetch(
         `https://api.pexels.com/v1/search?query=${searchTerm}&page=${currentPage}&per_page=${perPage}`,
@@ -32,12 +43,20 @@ const App = () => {
       setImagesData(isLoadMore ? [...imagesData, ...data.photos] : data.photos);
     } catch (error) {
       console.error('Failed to fetch images:', error);
+    } finally {
+      setLoading(false); // Stop loader
     }
   };
 
+  // Fetch images only when `currentPage` or `searchTerm` changes
   useEffect(() => {
     getImages(currentPage > 1);
-  }, [currentPage, searchTerm]);
+  }, [currentPage]);
+
+  const handleSearch = () => {
+    setCurrentPage(1); // Reset page to 1 for new search
+    getImages(); // Fetch images based on new search term
+  };
 
   const handleImageClick = (src, photographer) => {
     setTrackClickedImage(src);
@@ -70,7 +89,6 @@ const App = () => {
       console.error('Failed to save image:', error);
     }
   };
-  
 
   const breakpointColumnsObj = {
     default: 4,
@@ -81,6 +99,8 @@ const App = () => {
 
   return (
     <>
+      {loading && <Loader />} {/* Show Loader when loading */}
+
       {/* Header */}
       <header className="h-96 flex flex-col items-center justify-center">
         <h1 className="text-white lg:text-5xl px-2 text-4xl font-bold text-center capitalize">
@@ -92,11 +112,16 @@ const App = () => {
         <div className="search-box mt-6 mb-2 w-full flex items-center justify-center">
           <div className="search lg:w-1/3 w-[90%] bg-blue-500 flex">
             <div className="icon-box lg:w-[10%] w-[15%] py-2 bg-gray-200 flex items-center justify-center">
-              <img onClick={getImages} className="h-[20px] w-[20px] cursor-pointer" src={searchImg} alt="" />
+              <img 
+                onClick={handleSearch} // Fetch images on search icon click
+                className="h-[20px] w-[20px] cursor-pointer" 
+                src={searchImg} 
+                alt="search" 
+              />
             </div>
             <input
-              onInput={(e) => setSearchTerm(e.target.value)}
-              onKeyUp={(e) => e.key === "Enter" ? setCurrentPage(1) : null}
+              onChange={(e) => setSearchTerm(e.target.value)} // Update search term only
+              onKeyUp={(e) => e.key === "Enter" ? handleSearch() : null} // Fetch images on Enter press
               className="border-none outline-none px-4 py-2 text-base w-[90%]"
               type="text"
               placeholder="Search"
@@ -136,39 +161,38 @@ const App = () => {
 
       {/* Popup */}
       {isPopupOpen && (
-  <div
-    className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 z-50"
-    onClick={handleClosePopup}
-  >
-    <div
-      className="bg-white p-4 rounded shadow-lg w-[90%] h-[90%] flex flex-col"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="flex lg:justify-between lg:items-center lg:flex-row flex-col w-full mb-4">
-        <p className="font-semibold text-lg">Photographer: {photographerName}</p>
-        <div className="flex gap-2 mt-2 justify-end">
-          <button
-            onClick={handleSaveImage}
-            className="text-white bg-purple-700 py-2 px-3 rounded cursor-pointer"
+        <div
+          className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 z-50"
+          onClick={handleClosePopup}
+        >
+          <div
+            className="bg-white p-4 rounded shadow-lg w-[90%] h-[90%] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
           >
-            <RiDownload2Fill className="text-xl text-white" />
-          </button>
-          <button
-            onClick={handleClosePopup}
-            className="text-black bg-gray-200 p-2 rounded cursor-pointer"
-          >
-            <RiCloseLine className="text-2xl" />
-          </button>
+            <div className="flex lg:justify-between lg:items-center lg:flex-row flex-col w-full mb-4">
+              <p className="font-semibold text-lg">Photographer: {photographerName}</p>
+              <div className="flex gap-2 mt-2 justify-end">
+                <button
+                  onClick={handleSaveImage}
+                  className="text-white bg-purple-700 py-2 px-3 rounded cursor-pointer"
+                >
+                  <RiDownload2Fill className="text-xl text-white" />
+                </button>
+                <button
+                  onClick={handleClosePopup}
+                  className="text-black bg-gray-200 p-2 rounded cursor-pointer"
+                >
+                  <RiCloseLine className="text-2xl" />
+                </button>
+              </div>
+            </div>
+
+            <div className="h-3/5 flex-grow flex justify-center items-center">
+              <img src={trackClickedImage} alt="Selected" className="lg:w-4/5 w-full h-full object-contain" />
+            </div>
+          </div>
         </div>
-      </div>
-
-      <div className="h-3/5 flex-grow flex justify-center items-center">
-        <img src={trackClickedImage} alt="Selected" className="lg:w-4/5 w-full h-full object-contain" />
-      </div>
-    </div>
-  </div>
-)}
-
+      )}
     </>
   );
 };
